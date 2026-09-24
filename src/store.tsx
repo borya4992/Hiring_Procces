@@ -20,10 +20,13 @@ const KEYS = {
   session: 'hireflow.session',
   theme: 'hireflow.theme',
   lang: 'hireflow.lang',
+  version: 'hireflow.dataVersion',
 }
 
+const DATA_VERSION = 3
+
 export const ADMIN_EMAIL = 'Timekeeper.1120@gmail.com'
-const ADMIN_PASSWORD = '1992209212'
+export const ADMIN_NAME = 'Bobur Babajanov'
 
 export async function hashPassword(password: string): Promise<string> {
   const data = new TextEncoder().encode(`hireflow:${password}`)
@@ -256,177 +259,6 @@ function normalizeCandidate(c: Candidate): Candidate {
   }
 }
 
-function seedOrders(adminId: string): Order[] {
-  const rows: Array<Omit<Order, 'id' | 'createdBy' | 'closedAt' | 'qty' | 'urgency' | 'responsibleId' | 'keyPosition'>> = [
-    {
-      position: 'Frontend dasturchi',
-      department: 'IT',
-      source: 'external',
-      type: 'staff',
-      orderDate: daysAgo(12),
-      deadline: daysAgo(-6),
-      comment: 'React va TypeScript majburiy.',
-      status: 'open',
-    },
-    {
-      position: 'Backend dasturchi',
-      department: 'IT',
-      source: 'external',
-      type: 'staff',
-      orderDate: daysAgo(18),
-      deadline: daysAgo(-3),
-      comment: 'Python / FastAPI.',
-      status: 'filled',
-    },
-    {
-      position: 'HR mutaxassisi',
-      department: 'HR',
-      source: 'internal',
-      type: 'staff',
-      orderDate: daysAgo(9),
-      deadline: daysAgo(-10),
-      comment: 'Ichki rotatsiya afzal.',
-      status: 'open',
-    },
-    {
-      position: 'Savdo menejeri',
-      department: 'Savdo',
-      source: 'external',
-      type: 'gpd',
-      orderDate: daysAgo(5),
-      deadline: daysAgo(-14),
-      comment: 'Mintaqaviy savdo.',
-      status: 'open',
-    },
-    {
-      position: 'Buxgalter',
-      department: 'Moliya',
-      source: 'external',
-      type: 'staff',
-      orderDate: daysAgo(22),
-      deadline: daysAgo(2),
-      comment: '1C tajriba.',
-      status: 'filled',
-    },
-    {
-      position: 'Marketing mutaxassisi',
-      department: 'Marketing',
-      source: 'external',
-      type: 'gpd',
-      orderDate: daysAgo(7),
-      deadline: daysAgo(-8),
-      comment: 'Kontent va SMM.',
-      status: 'open',
-    },
-    {
-      position: 'Haydovchi',
-      department: 'Logistika',
-      source: 'external',
-      type: 'gpd',
-      orderDate: daysAgo(3),
-      deadline: daysAgo(-2),
-      comment: 'B toifa.',
-      status: 'open',
-    },
-    {
-      position: 'Yurist',
-      department: 'Yuridik',
-      source: 'internal',
-      type: 'staff',
-      orderDate: daysAgo(15),
-      deadline: daysAgo(1),
-      comment: 'Shartnomalar.',
-      status: 'cancelled',
-    },
-    {
-      position: 'QA muhandisi',
-      department: 'IT',
-      source: 'external',
-      type: 'staff',
-      orderDate: daysAgo(1),
-      deadline: daysAgo(-20),
-      comment: 'Avtomatlashtirish.',
-      status: 'open',
-    },
-    {
-      position: 'Kassa operatori',
-      department: 'Operatsiyalar',
-      source: 'external',
-      type: 'gpd',
-      orderDate: daysAgo(0),
-      deadline: daysAgo(-3),
-      comment: 'Smena ishi.',
-      status: 'open',
-    },
-  ]
-  return rows.map((r, i) => ({
-    ...r,
-    qty: [2, 1, 1, 3, 1, 2, 1, 1, 2, 2][i] ?? 1,
-    urgency: (['urgent', 'medium', 'reserve', 'urgent', 'medium', 'medium', 'reserve', 'medium', 'urgent', 'medium'][i] ?? 'medium') as Urgency,
-    responsibleId: adminId,
-    keyPosition: ['Frontend dasturchi', 'Backend dasturchi', 'HR mutaxassisi'].includes(r.position),
-    closedAt: r.status === 'filled' ? (r.position === 'Backend dasturchi' ? daysAgo(6) : daysAgo(4)) : null,
-    id: uid(),
-    createdBy: adminId,
-  }))
-}
-
-function seedCandidates(adminId: string): Candidate[] {
-  const people: Array<
-    Omit<Candidate, 'id' | 'createdBy' | 'hiredDate' | 'probationResult' | 'probationDecidedAt' | 'rejectedFrom' | 'rejectedAt' | 'stageDates' | 'keyPosition'> & {
-      hiredDate?: string | null
-      probationResult?: Candidate['probationResult']
-      probationDecidedAt?: string | null
-      rejectedFrom?: Stage | null
-      rejectedAt?: string | null
-      stageDates?: StageDates
-    }
-  > = [
-    { fullName: 'Aziza Karimova', position: 'Frontend dasturchi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(11), comment: 'Portfolio kuchli.', stage: 'interview' },
-    { fullName: 'Javohir Toshmatov', position: 'Backend dasturchi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(10), comment: 'FastAPI loyihalari bor.', stage: 'screening' },
-    { fullName: 'Dilnoza Yusupova', position: 'HR mutaxassisi', source: 'internal', previousPosition: 'HR yordamchisi', type: 'staff', date: daysAgo(8), comment: 'Ichki nomzod.', stage: 'documents' },
-    { fullName: 'Bekzod Rahimov', position: 'Savdo menejeri', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(4), comment: 'Savdo tajribasi 4 yil.', stage: 'found' },
-    { fullName: 'Malika Saidova', position: 'Buxgalter', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(20), comment: 'Qabul qilindi.', stage: 'hired', hiredDate: daysAgo(4) },
-    { fullName: 'Sardor Alimov', position: 'Marketing mutaxassisi', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(6), comment: 'SMM.', stage: 'internship' },
-    { fullName: 'Nilufar Qodirova', position: 'Frontend dasturchi', source: 'internal', previousPosition: 'Junior frontend', type: 'staff', date: daysAgo(13), comment: 'Ichki o‘sish.', stage: 'probation', hiredDate: daysAgo(2) },
-    { fullName: 'Otabek Islomov', position: 'QA muhandisi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(2), comment: 'Cypress.', stage: 'found' },
-    { fullName: 'Shahnoza Ergasheva', position: 'Yurist', source: 'internal', previousPosition: 'Yuridik yordamchi', type: 'staff', date: daysAgo(14), comment: 'Bekor qilingan buyurtma.', stage: 'screening' },
-    { fullName: 'Timur Nazarov', position: 'Haydovchi', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(3), comment: 'Toshkent.', stage: 'interview' },
-    { fullName: 'Madina Jo‘rayeva', position: 'Kassa operatori', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(0), comment: 'Bugun qo‘shildi.', stage: 'found' },
-    { fullName: 'Rustam Qodirov', position: 'Backend dasturchi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(7), comment: 'Node.js.', stage: 'internship' },
-    { fullName: 'Gulnora Xolmatova', position: 'HR mutaxassisi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(9), comment: 'Suhbat o‘tdi.', stage: 'interview' },
-    { fullName: 'Akmal Sobirov', position: 'Savdo menejeri', source: 'internal', previousPosition: 'Savdo agenti', type: 'gpd', date: daysAgo(5), comment: 'Ichki.', stage: 'screening' },
-    { fullName: 'Lola Abdullayeva', position: 'Marketing mutaxassisi', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(1), comment: 'Dizayn ham qiladi.', stage: 'found' },
-    { fullName: 'Farrux Usmonov', position: 'QA muhandisi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(16), comment: 'Sinov muddati.', stage: 'probation', hiredDate: daysAgo(0) },
-    { fullName: 'Sevara Tursunova', position: 'Buxgalter', source: 'internal', previousPosition: 'Kassa', type: 'staff', date: daysAgo(19), comment: 'Hujjatlar bosqichi.', stage: 'documents' },
-    { fullName: 'Jasur Mahmudov', position: 'Frontend dasturchi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(12), comment: 'Vue tajriba.', stage: 'screening' },
-    { fullName: 'Nodira Aliyeva', position: 'Kassa operatori', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(2), comment: '', stage: 'interview' },
-    { fullName: 'Shohruh Karimov', position: 'Haydovchi', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(8), comment: 'Stajirovka.', stage: 'internship' },
-    { fullName: 'Zarina Rasulova', position: 'HR mutaxassisi', source: 'internal', previousPosition: 'Ish yurituvchi', type: 'staff', date: daysAgo(0), comment: 'Kunlik yangi.', stage: 'found' },
-    { fullName: 'Ilyos Bekmurodov', position: 'Backend dasturchi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(21), comment: 'Ishga qabul.', stage: 'hired', hiredDate: daysAgo(6) },
-    { fullName: 'Komil Nurmatov', position: 'Savdo menejeri', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(90), comment: '80 kun tugadi.', stage: 'probation', hiredDate: daysAgo(80) },
-    { fullName: 'Dildora Hasanova', position: 'HR mutaxassisi', source: 'internal', previousPosition: 'HR yordamchisi', type: 'staff', date: daysAgo(100), comment: 'Sinov muddati o‘tdi.', stage: 'probation', hiredDate: daysAgo(92) },
-    { fullName: 'Azamat Toirov', position: 'Frontend dasturchi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(95), comment: 'Sinovdan o‘tdi.', stage: 'hired', hiredDate: daysAgo(85), probationResult: 'passed' as const, probationDecidedAt: daysAgo(5) },
-    { fullName: 'Kamola Ergasheva', position: 'Marketing mutaxassisi', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(90), comment: 'Sinovdan o‘tmadi.', stage: 'probation', hiredDate: daysAgo(82), probationResult: 'failed' as const, probationDecidedAt: daysAgo(2) },
-    { fullName: 'Alisher Yo‘ldoshev', position: 'Savdo menejeri', source: 'external', previousPosition: '', type: 'gpd', date: daysAgo(12), comment: 'Saralashdan o‘tmadi.', stage: 'screening', rejectedFrom: 'screening' as const, rejectedAt: daysAgo(3) },
-    { fullName: 'Munisa Rahimova', position: 'HR mutaxassisi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(9), comment: 'Suhbatdan o‘tmadi.', stage: 'interview', rejectedFrom: 'interview' as const, rejectedAt: daysAgo(1) },
-    { fullName: 'Sherzod G‘aniev', position: 'QA muhandisi', source: 'external', previousPosition: '', type: 'staff', date: daysAgo(15), comment: 'Stajirovka yakunlanmadi.', stage: 'internship', rejectedFrom: 'internship' as const, rejectedAt: daysAgo(6) },
-    { fullName: 'Nigora Sodiqova', position: 'Buxgalter', source: 'internal', previousPosition: 'Kassa', type: 'staff', date: daysAgo(18), comment: 'Hujjatlar mos kelmadi.', stage: 'documents', rejectedFrom: 'documents' as const, rejectedAt: daysAgo(4) },
-  ]
-  return people.map((p) => ({
-    ...p,
-    hiredDate: p.hiredDate ?? (p.stage === 'hired' || p.stage === 'probation' ? p.date : null),
-    probationResult: p.probationResult ?? null,
-    probationDecidedAt: p.probationDecidedAt ?? null,
-    rejectedFrom: p.rejectedFrom ?? null,
-    rejectedAt: p.rejectedAt ?? null,
-    stageDates: {},
-    keyPosition: ['Frontend dasturchi', 'Backend dasturchi', 'HR mutaxassisi'].includes(p.position),
-    id: uid(),
-    createdBy: adminId,
-  }))
-}
-
 function migrateRole(role: string): Role {
   if (role === 'admin' || role === 'director' || role === 'deputy' || role === 'head' || role === 'recruiter') {
     return role
@@ -477,93 +309,37 @@ function applyHireClosures(list: Order[], people: Candidate[]): Order[] {
   return next
 }
 
-async function ensureSeed(): Promise<{
+function wipeLegacyDemo() {
+  if (load<number>(KEYS.version, 0) === DATA_VERSION) return
+  localStorage.removeItem(KEYS.users)
+  localStorage.removeItem(KEYS.orders)
+  localStorage.removeItem(KEYS.candidates)
+  localStorage.removeItem(KEYS.deletedOrders)
+  localStorage.removeItem(KEYS.deletedCandidates)
+  localStorage.removeItem(KEYS.session)
+  save(KEYS.version, DATA_VERSION)
+}
+
+function loadAppData(): {
   users: User[]
   orders: Order[]
   candidates: Candidate[]
   deletedOrders: DeletedOrder[]
   deletedCandidates: DeletedCandidate[]
-}> {
-  let users = load<User[]>(KEYS.users, [])
-  users = users.map((u) => ({ ...u, role: migrateRole(u.role) }))
-  const adminHash = await hashPassword(ADMIN_PASSWORD)
-  const adminExisting = users.find((u) => u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
-  if (!adminExisting) {
-    const admin: User = {
-      id: uid(),
-      name: 'Admin',
-      email: ADMIN_EMAIL,
-      passwordHash: adminHash,
-      role: 'admin',
-      avatar: null,
-      createdAt: new Date().toISOString(),
-    }
-    users = [admin, ...users]
-  } else {
-    users = users.map((u) =>
-      u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
-        ? { ...u, passwordHash: adminHash, role: 'admin', name: u.name === 'Direktor' || u.name === 'Administrator' ? 'Admin' : u.name }
-        : u,
-    )
-  }
-  save(KEYS.users, users)
-
-  const adminId = users.find((u) => u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())!.id
-  let orders = load<Order[]>(KEYS.orders, [])
-  let candidates = load<Candidate[]>(KEYS.candidates, [])
-  if (candidates.length === 0) {
-    candidates = seedCandidates(adminId)
-  } else {
-    candidates = candidates.map((c) => {
-      const base = normalizeCandidate({
-        ...c,
-        hiredDate: c.hiredDate ?? null,
-        probationResult: c.probationResult ?? null,
-        probationDecidedAt: c.probationDecidedAt ?? null,
-      })
-      if (!isHiredStage(base.stage)) return base
-      if (base.hiredDate) return base
-      const order = orders.find((o) => o.position === base.position && o.status !== 'cancelled')
-      if (order && base.date < order.orderDate) {
-        return { ...base, hiredDate: daysAgo(1) }
-      }
-      return { ...base, hiredDate: base.date }
-    })
-    const extras = seedCandidates(adminId).filter((row) =>
-      [
-        'Komil Nurmatov',
-        'Dildora Hasanova',
-        'Azamat Toirov',
-        'Kamola Ergasheva',
-        'Alisher Yo‘ldoshev',
-        'Munisa Rahimova',
-        'Sherzod G‘aniev',
-        'Nigora Sodiqova',
-      ].includes(row.fullName),
-    )
-    for (const row of extras) {
-      if (!candidates.some((c) => c.fullName === row.fullName)) candidates.push(row)
-    }
-  }
-  if (orders.length === 0) {
-    orders = seedOrders(adminId)
-  } else {
-    orders = orders.map((o) => {
-      const next = normalizeOrder(o)
-      if (next.status !== 'filled') return { ...next, closedAt: null }
-      const hire = candidates.find((c) => c.position === next.position && isHiredStage(c.stage))
-      const hireDate = hire?.hiredDate || hire?.date || null
-      if (!next.closedAt || next.closedAt === next.deadline) return { ...next, closedAt: hireDate }
-      return next
-    })
-  }
-  candidates = candidates.map((c) => normalizeCandidate(c))
-  orders = applyHireClosures(orders, candidates)
-  const deletedOrders = load<DeletedOrder[]>(KEYS.deletedOrders, []).map((o) => ({ ...normalizeOrder(o), deletedAt: o.deletedAt }))
+} {
+  wipeLegacyDemo()
+  const users = load<User[]>(KEYS.users, []).map((u) => ({ ...u, role: migrateRole(u.role) }))
+  const candidates = load<Candidate[]>(KEYS.candidates, []).map((c) => normalizeCandidate(c))
+  const orders = applyHireClosures(load<Order[]>(KEYS.orders, []).map((o) => normalizeOrder(o)), candidates)
+  const deletedOrders = load<DeletedOrder[]>(KEYS.deletedOrders, []).map((o) => ({
+    ...normalizeOrder(o),
+    deletedAt: o.deletedAt,
+  }))
   const deletedCandidates = load<DeletedCandidate[]>(KEYS.deletedCandidates, []).map((c) => ({
     ...normalizeCandidate(c),
     deletedAt: c.deletedAt,
   }))
+  save(KEYS.users, users)
   save(KEYS.orders, orders)
   save(KEYS.candidates, candidates)
   save(KEYS.deletedOrders, deletedOrders)
@@ -699,9 +475,11 @@ interface Store {
   lang: Lang
   toasts: Toast[]
   t: (key: string) => string
+  needsSetup: boolean
   setTheme: (theme: Theme) => void
   setLang: (lang: Lang) => void
   login: (email: string, password: string) => Promise<boolean>
+  setupAdmin: (password: string) => Promise<string | null>
   logout: () => void
   toast: (message: string, kind?: Toast['kind']) => void
   updateAvatar: (dataUrl: string) => void
@@ -742,15 +520,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
   useEffect(() => {
-    void (async () => {
-      const data = await ensureSeed()
-      setUsers(data.users)
-      setOrders(data.orders)
-      setCandidates(data.candidates)
-      setDeletedOrders(data.deletedOrders)
-      setDeletedCandidates(data.deletedCandidates)
-      setReady(true)
-    })()
+    const data = loadAppData()
+    setUsers(data.users)
+    setOrders(data.orders)
+    setCandidates(data.candidates)
+    setDeletedOrders(data.deletedOrders)
+    setDeletedCandidates(data.deletedCandidates)
+    setSessionId(load<string | null>(KEYS.session, null))
+    setReady(true)
   }, [])
 
   useEffect(() => {
@@ -817,6 +594,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSessionId(user.id)
     save(KEYS.session, user.id)
     return true
+  }
+
+  const setupAdmin = async (password: string) => {
+    if (users.length) return t(lang, 'auth.error')
+    if (password.length < 6) return t(lang, 'top.weak')
+    const admin: User = {
+      id: uid(),
+      name: ADMIN_NAME,
+      email: ADMIN_EMAIL,
+      passwordHash: await hashPassword(password),
+      role: 'admin',
+      avatar: null,
+      createdAt: new Date().toISOString(),
+    }
+    persistUsers([admin])
+    setSessionId(admin.id)
+    save(KEYS.session, admin.id)
+    return null
   }
 
   const logout = () => {
@@ -1069,9 +864,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     lang,
     toasts,
     t: (key) => t(lang, key),
+    needsSetup: users.length === 0,
     setTheme,
     setLang,
     login,
+    setupAdmin,
     logout,
     toast,
     updateAvatar,

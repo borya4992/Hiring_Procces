@@ -12,6 +12,10 @@ const dict = {
       login: 'Kirish',
       error: 'Email yoki parol noto‘g‘ri',
       remember: 'Sessiya saqlansin',
+      setupTitle: 'Admin akkauntini yarating',
+      setupSubtitle: 'Parolni o‘zingiz belgilaysiz. Keyin shu email va parol bilan kirasiz.',
+      setupAction: 'Adminni yaratish',
+      name: 'Ism',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -285,6 +289,10 @@ const dict = {
       login: 'Sign in',
       error: 'Invalid email or password',
       remember: 'Keep me signed in',
+      setupTitle: 'Create the admin account',
+      setupSubtitle: 'Set your own password. Sign in later with this email and password.',
+      setupAction: 'Create admin',
+      name: 'Name',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -558,6 +566,10 @@ const dict = {
       login: 'Войти',
       error: 'Неверный email или пароль',
       remember: 'Сохранить сессию',
+      setupTitle: 'Создайте аккаунт администратора',
+      setupSubtitle: 'Пароль задаёте вы. Потом входите этим email и паролем.',
+      setupAction: 'Создать администратора',
+      name: 'Имя',
     },
     nav: {
       dashboard: 'Dashboard',
