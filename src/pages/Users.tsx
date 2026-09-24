@@ -37,7 +37,7 @@ export function Users() {
       return
     }
     if (editId) {
-      const msg = updateUser(editId, { name: form.name.trim(), email: form.email.trim(), role: form.role })
+      const msg = await updateUser(editId, { name: form.name.trim(), email: form.email.trim(), role: form.role })
       if (msg) setErr(msg)
       else setMode('list')
     } else {
@@ -162,8 +162,9 @@ export function Users() {
                       className="btn btn-sm btn-danger"
                       onClick={() => {
                         if (!confirm(t('common.confirmDelete'))) return
-                        const msg = deleteUser(u.id)
-                        if (msg) alert(msg)
+                        void deleteUser(u.id).then((msg) => {
+                          if (msg) alert(msg)
+                        })
                       }}
                     >
                       <IconTrash width={14} height={14} />

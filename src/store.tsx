@@ -9,30 +9,36 @@ import {
 } from 'react'
 import type { Candidate, DeletedCandidate, DeletedOrder, Lang, Order, PipelineStage, ProbationResult, Role, Stage, StageDates, Theme, Toast, Urgency, User } from './types'
 import { CANDIDATE_STAGES, REJECTABLE_STAGES, STAGES } from './types'
+import {
+  cloudApplyOrderClosures,
+  cloudChangeOwnPassword,
+  cloudDeleteCandidate,
+  cloudDeleteDeletedCandidate,
+  cloudDeleteDeletedOrder,
+  cloudDeleteOrder,
+  cloudInsertDeletedCandidate,
+  cloudInsertDeletedOrder,
+  cloudLoadAll,
+  cloudLogin,
+  cloudLogout,
+  cloudNeedsSetup,
+  cloudSessionId,
+  cloudUpdateAvatar,
+  cloudUpsertCandidates,
+  cloudUpsertOrders,
+  cloudVerifyPassword,
+  invokeAdmin,
+} from './cloud'
 import { t } from './i18n'
+import { isSupabaseConfigured } from './supabase'
 
 const KEYS = {
-  users: 'hireflow.users',
-  orders: 'hireflow.orders',
-  candidates: 'hireflow.candidates',
-  deletedOrders: 'hireflow.deletedOrders',
-  deletedCandidates: 'hireflow.deletedCandidates',
-  session: 'hireflow.session',
   theme: 'hireflow.theme',
   lang: 'hireflow.lang',
-  version: 'hireflow.dataVersion',
 }
-
-const DATA_VERSION = 3
 
 export const ADMIN_EMAIL = 'Timekeeper.1120@gmail.com'
 export const ADMIN_NAME = 'Bobur Babajanov'
-
-export async function hashPassword(password: string): Promise<string> {
-  const data = new TextEncoder().encode(`hireflow:${password}`)
-  const buf = await crypto.subtle.digest('SHA-256', data)
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
-}
 
 function uid(): string {
   return crypto.randomUUID()
@@ -259,15 +265,6 @@ function normalizeCandidate(c: Candidate): Candidate {
   }
 }
 
-function migrateRole(role: string): Role {
-  if (role === 'admin' || role === 'director' || role === 'deputy' || role === 'head' || role === 'recruiter') {
-    return role
-  }
-  if (role === 'hr') return 'head'
-  if (role === 'observer') return 'deputy'
-  return 'recruiter'
-}
-
 export function isHiredStage(stage: string): boolean {
   return stage === 'hired' || stage === 'probation'
 }
@@ -307,44 +304,6 @@ function applyHireClosures(list: Order[], people: Candidate[]): Order[] {
     }
   }
   return next
-}
-
-function wipeLegacyDemo() {
-  if (load<number>(KEYS.version, 0) === DATA_VERSION) return
-  localStorage.removeItem(KEYS.users)
-  localStorage.removeItem(KEYS.orders)
-  localStorage.removeItem(KEYS.candidates)
-  localStorage.removeItem(KEYS.deletedOrders)
-  localStorage.removeItem(KEYS.deletedCandidates)
-  localStorage.removeItem(KEYS.session)
-  save(KEYS.version, DATA_VERSION)
-}
-
-function loadAppData(): {
-  users: User[]
-  orders: Order[]
-  candidates: Candidate[]
-  deletedOrders: DeletedOrder[]
-  deletedCandidates: DeletedCandidate[]
-} {
-  wipeLegacyDemo()
-  const users = load<User[]>(KEYS.users, []).map((u) => ({ ...u, role: migrateRole(u.role) }))
-  const candidates = load<Candidate[]>(KEYS.candidates, []).map((c) => normalizeCandidate(c))
-  const orders = applyHireClosures(load<Order[]>(KEYS.orders, []).map((o) => normalizeOrder(o)), candidates)
-  const deletedOrders = load<DeletedOrder[]>(KEYS.deletedOrders, []).map((o) => ({
-    ...normalizeOrder(o),
-    deletedAt: o.deletedAt,
-  }))
-  const deletedCandidates = load<DeletedCandidate[]>(KEYS.deletedCandidates, []).map((c) => ({
-    ...normalizeCandidate(c),
-    deletedAt: c.deletedAt,
-  }))
-  save(KEYS.users, users)
-  save(KEYS.orders, orders)
-  save(KEYS.candidates, candidates)
-  save(KEYS.deletedOrders, deletedOrders)
-  save(KEYS.deletedCandidates, deletedCandidates)
-  return { users, orders, candidates, deletedOrders, deletedCandidates }
 }
 
 export function inRange(dateStr: string, from: string, to: string): boolean {
@@ -476,6 +435,7 @@ interface Store {
   toasts: Toast[]
   t: (key: string) => string
   needsSetup: boolean
+  supabaseConfigured: boolean
   setTheme: (theme: Theme) => void
   setLang: (lang: Lang) => void
   login: (email: string, password: string) => Promise<boolean>
@@ -497,9 +457,9 @@ interface Store {
   unrejectCandidate: (id: string) => void
   decideProbation: (id: string, result: ProbationResult) => void
   addUser: (input: { name: string; email: string; password: string; role: Role }) => Promise<string | null>
-  updateUser: (id: string, patch: Partial<Pick<User, 'name' | 'email' | 'role'>>) => string | null
+  updateUser: (id: string, patch: Partial<Pick<User, 'name' | 'email' | 'role'>>) => Promise<string | null>
   setUserPassword: (id: string, password: string) => Promise<string | null>
-  deleteUser: (id: string) => string | null
+  deleteUser: (id: string) => Promise<string | null>
   canManageOrders: boolean
   canManageCandidates: boolean
   isAdmin: boolean
@@ -514,21 +474,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [deletedOrders, setDeletedOrders] = useState<DeletedOrder[]>([])
   const [deletedCandidates, setDeletedCandidates] = useState<DeletedCandidate[]>([])
-  const [sessionId, setSessionId] = useState<string | null>(() => load<string | null>(KEYS.session, null))
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [needsSetup, setNeedsSetup] = useState(false)
   const [theme, setThemeState] = useState<Theme>(() => load<Theme>(KEYS.theme, 'midnight'))
   const [lang, setLangState] = useState<Lang>(() => load<Lang>(KEYS.lang, 'uz'))
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  useEffect(() => {
-    const data = loadAppData()
+  const refreshCloud = useCallback(async () => {
+    const data = await cloudLoadAll()
     setUsers(data.users)
     setOrders(data.orders)
     setCandidates(data.candidates)
     setDeletedOrders(data.deletedOrders)
     setDeletedCandidates(data.deletedCandidates)
-    setSessionId(load<string | null>(KEYS.session, null))
-    setReady(true)
   }, [])
+
+  useEffect(() => {
+    void (async () => {
+      if (!isSupabaseConfigured()) {
+        setReady(true)
+        return
+      }
+      try {
+        const setup = await cloudNeedsSetup()
+        setNeedsSetup(setup)
+        const sid = await cloudSessionId()
+        setSessionId(sid)
+        if (sid) await refreshCloud()
+      } catch (err) {
+        console.error(err)
+      }
+      setReady(true)
+    })()
+  }, [refreshCloud])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -540,32 +518,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [users, sessionId],
   )
 
-  const persistUsers = (next: User[]) => {
-    setUsers(next)
-    save(KEYS.users, next)
+  const fail = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : t(lang, 'auth.error')
+    toast(msg, 'err')
+    return msg
   }
-  const persistOrders = (next: Order[]) => {
-    setOrders(next)
-    save(KEYS.orders, next)
+
+  const canManageOrders = currentUser?.role === 'admin' || currentUser?.role === 'head'
+  const canManageCandidates = currentUser?.role === 'admin' || currentUser?.role === 'recruiter'
+
+  const persistOrdersSyncHires = async (next: Order[], people = candidates, fullWrite = canManageOrders) => {
+    const synced = applyHireClosures(next, people)
+    setOrders(synced)
+    if (fullWrite) await cloudUpsertOrders(synced)
+    else await cloudApplyOrderClosures(synced)
   }
-  const persistOrdersSyncHires = (next: Order[]) => {
-    persistOrders(applyHireClosures(next, candidates))
-  }
-  const persistCandidates = (next: Candidate[]) => {
+
+  const persistCandidatesSyncOrders = async (next: Candidate[]) => {
     setCandidates(next)
-    save(KEYS.candidates, next)
-  }
-  const persistCandidatesSyncOrders = (next: Candidate[]) => {
-    persistCandidates(next)
-    persistOrders(applyHireClosures(orders, next))
-  }
-  const persistDeletedOrders = (next: DeletedOrder[]) => {
-    setDeletedOrders(next)
-    save(KEYS.deletedOrders, next)
-  }
-  const persistDeletedCandidates = (next: DeletedCandidate[]) => {
-    setDeletedCandidates(next)
-    save(KEYS.deletedCandidates, next)
+    await cloudUpsertCandidates(next)
+    await persistOrdersSyncHires(orders, next)
   }
 
   const toast = useCallback((message: string, kind: Toast['kind'] = 'ok') => {
@@ -586,62 +558,62 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }
 
   const login = async (email: string, password: string) => {
-    const hash = await hashPassword(password)
-    const user = users.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.passwordHash === hash,
-    )
-    if (!user) return false
-    setSessionId(user.id)
-    save(KEYS.session, user.id)
+    if (!isSupabaseConfigured()) return false
+    const ok = await cloudLogin(email, password)
+    if (!ok) return false
+    const sid = await cloudSessionId()
+    setSessionId(sid)
+    if (sid) await refreshCloud()
     return true
   }
 
   const setupAdmin = async (password: string) => {
-    if (users.length) return t(lang, 'auth.error')
+    if (!isSupabaseConfigured()) return t(lang, 'auth.cloudMissing')
     if (password.length < 6) return t(lang, 'top.weak')
-    const admin: User = {
-      id: uid(),
-      name: ADMIN_NAME,
-      email: ADMIN_EMAIL,
-      passwordHash: await hashPassword(password),
-      role: 'admin',
-      avatar: null,
-      createdAt: new Date().toISOString(),
+    try {
+      await invokeAdmin({ action: 'setup', password })
+      const ok = await cloudLogin(ADMIN_EMAIL, password)
+      if (!ok) return t(lang, 'auth.error')
+      const sid = await cloudSessionId()
+      setSessionId(sid)
+      setNeedsSetup(false)
+      if (sid) await refreshCloud()
+      return null
+    } catch (err) {
+      return fail(err)
     }
-    persistUsers([admin])
-    setSessionId(admin.id)
-    save(KEYS.session, admin.id)
-    return null
   }
 
   const logout = () => {
     setSessionId(null)
-    localStorage.removeItem(KEYS.session)
+    void cloudLogout()
   }
 
   const updateAvatar = (dataUrl: string) => {
     if (!currentUser) return
-    persistUsers(users.map((u) => (u.id === currentUser.id ? { ...u, avatar: dataUrl } : u)))
-    toast(t(lang, 'top.avatarUpdated'))
+    setUsers(users.map((u) => (u.id === currentUser.id ? { ...u, avatar: dataUrl } : u)))
+    void cloudUpdateAvatar(currentUser.id, dataUrl)
+      .then(() => toast(t(lang, 'top.avatarUpdated')))
+      .catch(fail)
   }
 
   const changeOwnPassword = async (current: string, next: string) => {
     if (!currentUser) return 'err'
     if (next.length < 6) return t(lang, 'top.weak')
-    const curHash = await hashPassword(current)
-    if (curHash !== currentUser.passwordHash) return t(lang, 'top.wrongCurrent')
-    const nextHash = await hashPassword(next)
-    persistUsers(users.map((u) => (u.id === currentUser.id ? { ...u, passwordHash: nextHash } : u)))
-    toast(t(lang, 'top.passwordChanged'))
-    return null
+    const ok = await cloudVerifyPassword(currentUser.email, current)
+    if (!ok) return t(lang, 'top.wrongCurrent')
+    try {
+      await cloudChangeOwnPassword(next)
+      toast(t(lang, 'top.passwordChanged'))
+      return null
+    } catch (err) {
+      return fail(err)
+    }
   }
-
-  const canManageOrders = currentUser?.role === 'admin' || currentUser?.role === 'head'
-  const canManageCandidates = currentUser?.role === 'admin' || currentUser?.role === 'recruiter'
 
   const addOrder = (row: Omit<Order, 'id' | 'createdBy'>) => {
     if (!currentUser || !canManageOrders) return
-    persistOrdersSyncHires([
+    const next = [
       normalizeOrder({
         ...row,
         id: uid(),
@@ -649,37 +621,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         closedAt: row.status === 'filled' ? row.closedAt || daysAgo(0) : null,
       }),
       ...orders,
-    ])
-    toast(t(lang, 'common.created'))
+    ]
+    void persistOrdersSyncHires(next)
+      .then(() => toast(t(lang, 'common.created')))
+      .catch(fail)
   }
   const updateOrder = (id: string, patch: Partial<Order>) => {
     if (!currentUser || !canManageOrders) return
-    persistOrdersSyncHires(
-      orders.map((o) => {
-        if (o.id !== id) return o
-        const next = normalizeOrder({ ...o, ...patch, id: o.id })
-        next.closedAt = next.status === 'filled' ? next.closedAt || daysAgo(0) : null
-        return next
-      }),
-    )
-    toast(t(lang, 'common.updated'))
+    const next = orders.map((o) => {
+      if (o.id !== id) return o
+      const updated = normalizeOrder({ ...o, ...patch, id: o.id })
+      updated.closedAt = updated.status === 'filled' ? updated.closedAt || daysAgo(0) : null
+      return updated
+    })
+    void persistOrdersSyncHires(next)
+      .then(() => toast(t(lang, 'common.updated')))
+      .catch(fail)
   }
   const deleteOrder = (id: string) => {
     if (!currentUser || !canManageOrders) return
     const row = orders.find((o) => o.id === id)
     if (!row) return
-    persistOrders(orders.filter((o) => o.id !== id))
-    persistDeletedOrders([{ ...row, deletedAt: new Date().toISOString() }, ...deletedOrders])
-    toast(t(lang, 'common.deleted'))
+    const deleted = { ...row, deletedAt: new Date().toISOString() }
+    setOrders(orders.filter((o) => o.id !== id))
+    setDeletedOrders([deleted, ...deletedOrders])
+    void (async () => {
+      await cloudDeleteOrder(id)
+      await cloudInsertDeletedOrder(deleted)
+      toast(t(lang, 'common.deleted'))
+    })().catch(fail)
   }
   const restoreOrder = (id: string) => {
     if (!currentUser || !canManageOrders) return
     const row = deletedOrders.find((o) => o.id === id)
     if (!row) return
     const { deletedAt: _deletedAt, ...rest } = row
-    persistDeletedOrders(deletedOrders.filter((o) => o.id !== id))
-    persistOrdersSyncHires([normalizeOrder(rest), ...orders])
-    toast(t(lang, 'common.restored'))
+    setDeletedOrders(deletedOrders.filter((o) => o.id !== id))
+    void (async () => {
+      await cloudDeleteDeletedOrder(id)
+      await persistOrdersSyncHires([normalizeOrder(rest), ...orders])
+      toast(t(lang, 'common.restored'))
+    })().catch(fail)
   }
 
   const applyCandidatePatch = (c: Candidate, patch: Partial<Candidate>): Candidate => {
@@ -716,7 +698,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addCandidate = (row: Omit<Candidate, 'id' | 'createdBy'>) => {
     if (!currentUser || !canManageCandidates) return
-    persistCandidatesSyncOrders([
+    const next = [
       normalizeCandidate({
         ...row,
         hiredDate: isHiredStage(row.stage) ? row.hiredDate || daysAgo(0) : null,
@@ -726,75 +708,86 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createdBy: currentUser.id,
       }),
       ...candidates,
-    ])
-    toast(t(lang, 'common.created'))
+    ]
+    void persistCandidatesSyncOrders(next)
+      .then(() => toast(t(lang, 'common.created')))
+      .catch(fail)
   }
   const updateCandidate = (id: string, patch: Partial<Candidate>) => {
     if (!currentUser || !canManageCandidates) return
-    persistCandidatesSyncOrders(
-      candidates.map((c) => {
-        if (c.id !== id) return c
-        return applyCandidatePatch(c, patch)
-      }),
-    )
-    toast(t(lang, 'common.updated'))
+    const next = candidates.map((c) => (c.id === id ? applyCandidatePatch(c, patch) : c))
+    void persistCandidatesSyncOrders(next)
+      .then(() => toast(t(lang, 'common.updated')))
+      .catch(fail)
   }
   const bulkUpdateStages = (ids: string[], stage: Stage) => {
     if (!currentUser || !canManageCandidates || ids.length === 0) return
     const set = new Set(ids)
-    persistCandidatesSyncOrders(candidates.map((c) => (set.has(c.id) ? applyCandidatePatch(c, { stage }) : c)))
-    toast(t(lang, 'common.updated'))
+    const next = candidates.map((c) => (set.has(c.id) ? applyCandidatePatch(c, { stage }) : c))
+    void persistCandidatesSyncOrders(next)
+      .then(() => toast(t(lang, 'common.updated')))
+      .catch(fail)
   }
   const deleteCandidate = (id: string) => {
     if (!currentUser || !canManageCandidates) return
     const row = candidates.find((c) => c.id === id)
     if (!row) return
-    persistCandidatesSyncOrders(candidates.filter((c) => c.id !== id))
-    persistDeletedCandidates([{ ...row, deletedAt: new Date().toISOString() }, ...deletedCandidates])
-    toast(t(lang, 'common.deleted'))
+    const deleted = { ...row, deletedAt: new Date().toISOString() }
+    const next = candidates.filter((c) => c.id !== id)
+    setCandidates(next)
+    setDeletedCandidates([deleted, ...deletedCandidates])
+    void (async () => {
+      await cloudDeleteCandidate(id)
+      await cloudInsertDeletedCandidate(deleted)
+      await persistOrdersSyncHires(orders, next)
+      toast(t(lang, 'common.deleted'))
+    })().catch(fail)
   }
   const restoreCandidate = (id: string) => {
     if (!currentUser || !canManageCandidates) return
     const row = deletedCandidates.find((c) => c.id === id)
     if (!row) return
     const { deletedAt: _deletedAt, ...rest } = row
-    persistDeletedCandidates(deletedCandidates.filter((c) => c.id !== id))
-    persistCandidatesSyncOrders([normalizeCandidate(rest), ...candidates])
-    toast(t(lang, 'common.restored'))
+    setDeletedCandidates(deletedCandidates.filter((c) => c.id !== id))
+    void (async () => {
+      await cloudDeleteDeletedCandidate(id)
+      await persistCandidatesSyncOrders([normalizeCandidate(rest), ...candidates])
+      toast(t(lang, 'common.restored'))
+    })().catch(fail)
   }
   const rejectCandidate = (id: string) => {
     if (!currentUser || !canManageCandidates) return
-    persistCandidatesSyncOrders(
-      candidates.map((c) => {
-        if (c.id !== id) return c
-        const row = normalizeCandidate(c)
-        if (isRejected(row) || !isRejectableStage(row.stage)) return row
-        return applyCandidatePatch(row, { rejectedFrom: row.stage, rejectedAt: daysAgo(0) })
-      }),
-    )
-    toast(t(lang, 'candidates.rejected'))
+    const next = candidates.map((c) => {
+      if (c.id !== id) return c
+      const row = normalizeCandidate(c)
+      if (isRejected(row) || !isRejectableStage(row.stage)) return row
+      return applyCandidatePatch(row, { rejectedFrom: row.stage, rejectedAt: daysAgo(0) })
+    })
+    void persistCandidatesSyncOrders(next)
+      .then(() => toast(t(lang, 'candidates.rejected')))
+      .catch(fail)
   }
   const unrejectCandidate = (id: string) => {
     if (!currentUser || !canManageCandidates) return
-    persistCandidatesSyncOrders(
-      candidates.map((c) => (c.id === id ? applyCandidatePatch(c, { rejectedFrom: null, rejectedAt: null }) : c)),
-    )
-    toast(t(lang, 'common.restored'))
+    const next = candidates.map((c) => (c.id === id ? applyCandidatePatch(c, { rejectedFrom: null, rejectedAt: null }) : c))
+    void persistCandidatesSyncOrders(next)
+      .then(() => toast(t(lang, 'common.restored')))
+      .catch(fail)
   }
   const decideProbation = (id: string, result: ProbationResult) => {
     if (!currentUser || !canManageCandidates) return
-    persistCandidatesSyncOrders(
-      candidates.map((c) => {
-        if (c.id !== id) return c
-        return {
-          ...c,
-          probationResult: result,
-          probationDecidedAt: daysAgo(0),
-          stage: result === 'passed' ? 'hired' : 'probation',
-        }
-      }),
-    )
-    toast(t(lang, result === 'passed' ? 'probation.passedBtn' : 'probation.failedBtn'))
+    const next = candidates.map((c) => {
+      if (c.id !== id) return c
+      return {
+        ...c,
+        probationResult: result,
+        probationDecidedAt: daysAgo(0),
+        stage: result === 'passed' ? 'hired' : 'probation',
+      } as Candidate
+    })
+    void persistCandidatesSyncOrders(next)
+      .then(() => toast(t(lang, result === 'passed' ? 'probation.passedBtn' : 'probation.failedBtn')))
+      .catch(fail)
   }
 
   const adminCount = users.filter((u) => u.role === 'admin').length
@@ -804,24 +797,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return t(lang, 'users.exists')
     }
     if (input.password.length < 6) return t(lang, 'top.weak')
-    const passwordHash = await hashPassword(input.password)
-    persistUsers([
-      {
-        id: uid(),
+    try {
+      await invokeAdmin({
+        action: 'create',
         name: input.name.trim(),
         email: input.email.trim(),
-        passwordHash,
+        password: input.password,
         role: input.role,
-        avatar: null,
-        createdAt: new Date().toISOString(),
-      },
-      ...users,
-    ])
-    toast(t(lang, 'common.created'))
-    return null
+      })
+      await refreshCloud()
+      toast(t(lang, 'common.created'))
+      return null
+    } catch (err) {
+      const code = err instanceof Error ? err.message : ''
+      if (code === 'exists' || /already/i.test(code)) return t(lang, 'users.exists')
+      if (code === 'weak') return t(lang, 'top.weak')
+      return fail(err)
+    }
   }
 
-  const updateUser = (id: string, patch: Partial<Pick<User, 'name' | 'email' | 'role'>>) => {
+  const updateUser = async (id: string, patch: Partial<Pick<User, 'name' | 'email' | 'role'>>) => {
     const target = users.find((u) => u.id === id)
     if (!target) return 'err'
     if (target.role === 'admin' && patch.role && patch.role !== 'admin' && adminCount <= 1) {
@@ -830,26 +825,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (patch.email && users.some((u) => u.id !== id && u.email.toLowerCase() === patch.email!.toLowerCase())) {
       return t(lang, 'users.exists')
     }
-    persistUsers(users.map((u) => (u.id === id ? { ...u, ...patch } : u)))
-    toast(t(lang, 'common.updated'))
-    return null
+    try {
+      await invokeAdmin({ action: 'update', id, ...patch })
+      await refreshCloud()
+      toast(t(lang, 'common.updated'))
+      return null
+    } catch (err) {
+      const code = err instanceof Error ? err.message : ''
+      if (code === 'lastAdmin') return t(lang, 'users.lastAdmin')
+      return fail(err)
+    }
   }
 
   const setUserPassword = async (id: string, password: string) => {
     if (password.length < 6) return t(lang, 'top.weak')
-    const passwordHash = await hashPassword(password)
-    persistUsers(users.map((u) => (u.id === id ? { ...u, passwordHash } : u)))
-    toast(t(lang, 'top.passwordChanged'))
-    return null
+    try {
+      await invokeAdmin({ action: 'setPassword', id, password })
+      toast(t(lang, 'top.passwordChanged'))
+      return null
+    } catch (err) {
+      return fail(err)
+    }
   }
 
-  const deleteUser = (id: string) => {
+  const deleteUser = async (id: string) => {
     if (currentUser?.id === id) return t(lang, 'users.noSelfDelete')
     const target = users.find((u) => u.id === id)
     if (target?.role === 'admin' && adminCount <= 1) return t(lang, 'users.lastAdmin')
-    persistUsers(users.filter((u) => u.id !== id))
-    toast(t(lang, 'common.deleted'))
-    return null
+    try {
+      await invokeAdmin({ action: 'delete', id })
+      await refreshCloud()
+      toast(t(lang, 'common.deleted'))
+      return null
+    } catch (err) {
+      const code = err instanceof Error ? err.message : ''
+      if (code === 'lastAdmin') return t(lang, 'users.lastAdmin')
+      if (code === 'self') return t(lang, 'users.noSelfDelete')
+      return fail(err)
+    }
   }
 
   const value: Store = {
@@ -864,7 +877,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     lang,
     toasts,
     t: (key) => t(lang, key),
-    needsSetup: users.length === 0,
+    needsSetup,
+    supabaseConfigured: isSupabaseConfigured(),
     setTheme,
     setLang,
     login,

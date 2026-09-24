@@ -16,6 +16,7 @@ const dict = {
       setupSubtitle: 'Parolni o‘zingiz belgilaysiz. Keyin shu email va parol bilan kirasiz.',
       setupAction: 'Adminni yaratish',
       name: 'Ism',
+      cloudMissing: 'Supabase sozlanmagan. VITE_SUPABASE_URL va VITE_SUPABASE_ANON_KEY ni qo‘ying.',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -293,6 +294,7 @@ const dict = {
       setupSubtitle: 'Set your own password. Sign in later with this email and password.',
       setupAction: 'Create admin',
       name: 'Name',
+      cloudMissing: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -570,6 +572,7 @@ const dict = {
       setupSubtitle: 'Пароль задаёте вы. Потом входите этим email и паролем.',
       setupAction: 'Создать администратора',
       name: 'Имя',
+      cloudMissing: 'Supabase не настроен. Добавьте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY.',
     },
     nav: {
       dashboard: 'Dashboard',

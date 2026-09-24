@@ -49,7 +49,7 @@ function AuthChrome({ children }: { children: ReactNode }) {
 }
 
 export function Login() {
-  const { currentUser, ready, needsSetup, login, setupAdmin, t } = useStore()
+  const { currentUser, ready, needsSetup, supabaseConfigured, login, setupAdmin, t } = useStore()
   const [email, setEmail] = useState(ADMIN_EMAIL)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -85,6 +85,7 @@ export function Login() {
         <form onSubmit={onSetup}>
           <h2>{t('auth.setupTitle')}</h2>
           <p className="muted">{t('auth.setupSubtitle')}</p>
+          {!supabaseConfigured && <div className="auth-error">{t('auth.cloudMissing')}</div>}
           {err && <div className="auth-error">{err}</div>}
           <div className="field">
             <label>{t('auth.name')}</label>
@@ -128,7 +129,7 @@ export function Login() {
               />
             </div>
           </div>
-          <button className="btn btn-primary" disabled={busy}>
+          <button className="btn btn-primary" disabled={busy || !supabaseConfigured}>
             {t('auth.setupAction')}
           </button>
         </form>
@@ -141,6 +142,7 @@ export function Login() {
       <form onSubmit={onLogin}>
         <h2>{t('auth.welcome')}</h2>
         <p className="muted">{t('auth.subtitle')}</p>
+        {!supabaseConfigured && <div className="auth-error">{t('auth.cloudMissing')}</div>}
         {err && <div className="auth-error">{err}</div>}
         <div className="field">
           <label>{t('auth.email')}</label>
@@ -168,7 +170,7 @@ export function Login() {
             />
           </div>
         </div>
-        <button className="btn btn-primary" disabled={busy}>
+        <button className="btn btn-primary" disabled={busy || !supabaseConfigured}>
           {t('auth.login')}
         </button>
       </form>
