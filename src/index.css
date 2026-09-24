@@ -7,6 +7,7 @@ html,
 body,
 #root {
   height: 100%;
+  height: 100dvh;
   margin: 0;
 }
 html {
@@ -20,6 +21,7 @@ body {
   background: var(--bg);
   color: var(--text);
   overflow: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 :root {
@@ -363,6 +365,7 @@ a {
   flex: 1;
   min-width: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: auto;
   background-image: linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
@@ -381,6 +384,27 @@ a {
   background: var(--top);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
+}
+.menu-btn {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--elev);
+  color: var(--text);
+  place-items: center;
+  flex: 0 0 auto;
+}
+.menu-btn:hover {
+  box-shadow: var(--shadow-pink);
+  border-color: var(--pink);
+}
+.topbar-spacer {
+  flex: 1;
+}
+.sidebar-backdrop {
+  display: none;
 }
 .seg {
   display: flex;
@@ -1195,6 +1219,15 @@ tr.row-expand > td {
   .login-art {
     display: none;
   }
+  .login-form-wrap {
+    padding: 16px;
+    align-items: start;
+  }
+  .login-card {
+    width: 100%;
+    padding: 22px 16px;
+    border-radius: 18px;
+  }
   .stats,
   .stats.six,
   .two,
@@ -1204,6 +1237,118 @@ tr.row-expand > td {
     grid-template-columns: 1fr;
   }
   .content {
-    padding: 16px;
+    padding: 14px 12px 88px;
+  }
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .page-head h1 {
+    font-size: 22px;
+  }
+  .page-head .btn {
+    width: 100%;
+  }
+  .period-range {
+    width: 100%;
+  }
+  .period-range .date-input,
+  .period-range input[type='date'] {
+    min-width: 0;
+    width: 100%;
+  }
+  .menu-btn {
+    display: grid;
+  }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100dvh;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    z-index: 30;
+    box-shadow: 16px 0 40px rgba(0, 0, 0, 0.28);
+  }
+  .shell.nav-open .sidebar {
+    transform: none;
+  }
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 8, 16, 0.55);
+    z-index: 25;
+  }
+  .shell.nav-open .sidebar-backdrop {
+    display: block;
+  }
+  .topbar {
+    padding: 10px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .profile-meta,
+  .seg-label {
+    display: none;
+  }
+  .profile-btn {
+    padding: 4px;
+  }
+  .seg button {
+    padding: 7px 8px;
+  }
+  .form-card {
+    padding: 16px 12px;
+    border-radius: 16px;
+  }
+  .form-actions {
+    flex-wrap: wrap;
+  }
+  .form-actions .btn {
+    flex: 1 1 140px;
+  }
+  .modal-back {
+    padding: 10px;
+    align-items: end;
+  }
+  .modal,
+  .modal.wide {
+    width: 100%;
+    max-height: min(88dvh, 100%);
+    border-radius: 16px 16px 12px 12px;
+  }
+  .notes-menu {
+    right: auto;
+    left: 0;
+    min-width: min(280px, calc(100vw - 24px));
+  }
+  .toasts {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .toast {
+    min-width: 0;
+  }
+  .table-scroll > .table-wrap,
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+  .search {
+    min-width: 0;
+    width: 100%;
+  }
+  .toolbar .select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-quote h1 {
+    font-size: 28px;
+  }
+  .btn {
+    min-height: 42px;
   }
 }

@@ -1,11 +1,17 @@
-import { useEffect } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { isInternshipDue, isOrderDeadlineSoon, isProbationDue, todayIso, useStore } from '../store'
 
 export function Layout() {
   const { currentUser, ready, toasts, t, candidates, orders, toast } = useStore()
+  const [navOpen, setNavOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    setNavOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
     if (!ready || !currentUser) return
@@ -32,10 +38,11 @@ export function Layout() {
   if (!ready) return <div className="gate">{t('brand')}</div>
   if (!currentUser) return <Navigate to="/login" replace />
   return (
-    <div className="shell">
-      <Sidebar />
+    <div className={`shell${navOpen ? ' nav-open' : ''}`}>
+      <div className="sidebar-backdrop" onClick={() => setNavOpen(false)} />
+      <Sidebar onClose={() => setNavOpen(false)} />
       <div className="main">
-        <Topbar />
+        <Topbar onMenu={() => setNavOpen((v) => !v)} />
         <div className="content">
           <Outlet />
         </div>

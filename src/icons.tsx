@@ -121,6 +121,11 @@ export const IconX = (p: P) => (
     <path d="M6 6l12 12M18 6 6 18" />
   </svg>
 )
+export const IconMenu = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </svg>
+)
 export const IconTimer = (p: P) => (
   <svg {...base} {...p}>
     <circle cx="12" cy="13" r="8" />

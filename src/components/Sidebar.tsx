@@ -11,7 +11,7 @@ const items = [
   { to: '/users', key: 'nav.users', icon: IconShield, admin: true },
 ] as const
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { t, isAdmin, candidates, orders } = useStore()
   const dueCount = candidates.filter((c) => isProbationDue(c)).length
   const internCount = candidates.filter((c) => isInternshipDue(c)).length
@@ -34,6 +34,7 @@ export function Sidebar() {
               to={item.to}
               end={'end' in item ? item.end : false}
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              onClick={() => onClose?.()}
             >
               <item.icon />
               <span className="nav-label">{t(item.key)}</span>

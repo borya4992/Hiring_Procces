@@ -105,7 +105,7 @@ const dict = {
     status: { open: 'Ochiq', filled: 'Yopildi', cancelled: 'Bekor' },
     urgency: { urgent: 'Shoshilinch', medium: 'O‘rta', reserve: 'Rezerv' },
     stage: {
-      found: 'Nomzod topildi',
+      found: 'Faol nomzodlar',
       screening: 'Saralash',
       interview: 'Suhbat',
       internship: 'Stajirovka',
@@ -383,7 +383,7 @@ const dict = {
     status: { open: 'Open', filled: 'Closed', cancelled: 'Cancelled' },
     urgency: { urgent: 'Urgent', medium: 'Medium', reserve: 'Reserve' },
     stage: {
-      found: 'Candidate found',
+      found: 'Active candidates',
       screening: 'Screening',
       interview: 'Interview',
       internship: 'Internship',
@@ -661,7 +661,7 @@ const dict = {
     status: { open: 'Открыта', filled: 'Закрыта', cancelled: 'Отменена' },
     urgency: { urgent: 'Срочно', medium: 'Средний', reserve: 'Резерв' },
     stage: {
-      found: 'Кандидат найден',
+      found: 'Активные кандидаты',
       screening: 'Отбор',
       interview: 'Собеседование',
       internship: 'Стажировка',

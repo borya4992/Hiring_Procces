@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LANGS } from '../i18n'
-import { IconBell, IconCamera, IconLock, IconLogout, IconMoon, IconSun, IconX } from '../icons'
+import { IconBell, IconCamera, IconLock, IconLogout, IconMenu, IconMoon, IconSun, IconX } from '../icons'
 import {
   daysUntilDeadline,
   formatDate,
@@ -14,7 +14,7 @@ import {
   useStore,
 } from '../store'
 
-export function Topbar() {
+export function Topbar({ onMenu }: { onMenu?: () => void }) {
   const {
     currentUser,
     t,
@@ -64,6 +64,10 @@ export function Topbar() {
 
   return (
     <header className="topbar">
+      <button className="menu-btn" type="button" onClick={onMenu} aria-label="Menu">
+        <IconMenu />
+      </button>
+      <div className="topbar-spacer" />
       <div className="drop" ref={notesRef}>
         <button className="bell-btn" onClick={() => setNotesOpen((v) => !v)} title={t('common.notifications')}>
           <IconBell />
@@ -125,10 +129,10 @@ export function Topbar() {
       </div>
       <div className="seg" title={t('top.theme')}>
         <button className={theme === 'light' ? 'on' : ''} onClick={() => setTheme('light')}>
-          <IconSun width={15} height={15} /> {t('top.light')}
+          <IconSun width={15} height={15} /> <span className="seg-label">{t('top.light')}</span>
         </button>
         <button className={theme === 'midnight' ? 'on' : ''} onClick={() => setTheme('midnight')}>
-          <IconMoon width={15} height={15} /> {t('top.midnight')}
+          <IconMoon width={15} height={15} /> <span className="seg-label">{t('top.midnight')}</span>
         </button>
       </div>
       <div className="drop" ref={wrap}>
