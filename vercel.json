@@ -1,5 +1,17 @@
 {
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|assets/|icons/|sw\\.js|manifest\\.webmanifest|favicon\\.svg).*)",
+      "destination": "/index.html"
+    }
   ]
 }

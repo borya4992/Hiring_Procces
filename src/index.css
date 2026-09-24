@@ -1352,3 +1352,12 @@ tr.row-expand > td {
     min-height: 42px;
   }
 }
+
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+  .sidebar {
+    padding-top: max(18px, env(safe-area-inset-top));
+  }
+}
