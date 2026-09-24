@@ -24,13 +24,14 @@ import {
   cloudNeedsSetup,
   cloudSessionId,
   cloudUpdateAvatar,
+  cloudUpdateProfile,
   cloudUpsertCandidates,
   cloudUpsertOrders,
   cloudVerifyPassword,
   invokeAdmin,
 } from './cloud'
 import { t } from './i18n'
-import { isSupabaseConfigured } from './supabase'
+import { isSupabaseConfigured, supabase } from './supabase'
 
 const KEYS = {
   theme: 'hireflow.theme',
@@ -513,6 +514,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang
   }, [theme, lang])
 
+  useEffect(() => {
+    const db = supabase
+    if (!db || !sessionId) return
+    const channel = db
+      .channel('hp-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        void refreshCloud()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        void refreshCloud()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'candidates' }, () => {
+        void refreshCloud()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deleted_orders' }, () => {
+        void refreshCloud()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deleted_candidates' }, () => {
+        void refreshCloud()
+      })
+      .subscribe()
+    return () => {
+      void db.removeChannel(channel)
+    }
+  }, [sessionId, refreshCloud])
+
   const currentUser = useMemo(
     () => users.find((u) => u.id === sessionId) ?? null,
     [users, sessionId],
@@ -826,13 +853,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return t(lang, 'users.exists')
     }
     try {
-      await invokeAdmin({ action: 'update', id, ...patch })
+      await cloudUpdateProfile(id, patch)
       await refreshCloud()
       toast(t(lang, 'common.updated'))
       return null
     } catch (err) {
-      const code = err instanceof Error ? err.message : ''
-      if (code === 'lastAdmin') return t(lang, 'users.lastAdmin')
       return fail(err)
     }
   }

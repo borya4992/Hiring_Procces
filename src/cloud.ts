@@ -132,10 +132,23 @@ export async function cloudLogout() {
 }
 
 export async function invokeAdmin(body: Record<string, unknown>) {
-  const { data, error } = await must().functions.invoke('admin', { body })
-  if (error) throw error
-  const payload = data as { error?: string; ok?: boolean }
-  if (payload?.error) throw new Error(payload.error)
+  const db = must()
+  const { data: sessionData } = await db.auth.getSession()
+  const token = sessionData.session?.access_token
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch('/api/admin', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  })
+  let payload: { error?: string; ok?: boolean } = {}
+  try {
+    payload = (await res.json()) as { error?: string; ok?: boolean }
+  } catch {
+    payload = { error: res.statusText || 'server' }
+  }
+  if (!res.ok || payload.error) throw new Error(payload.error || `HTTP ${res.status}`)
   return payload
 }
 
@@ -227,6 +240,19 @@ export async function cloudDeleteDeletedCandidate(id: string) {
 
 export async function cloudUpdateAvatar(id: string, avatar: string) {
   const { error } = await must().from('profiles').update({ avatar }).eq('id', id)
+  if (error) throw error
+}
+
+export async function cloudUpdateProfile(
+  id: string,
+  patch: { name?: string; email?: string; role?: string },
+) {
+  const row: Record<string, string> = {}
+  if (typeof patch.name === 'string') row.name = patch.name.trim()
+  if (typeof patch.email === 'string') row.email = patch.email.trim().toLowerCase()
+  if (typeof patch.role === 'string') row.role = patch.role
+  if (!Object.keys(row).length) return
+  const { error } = await must().from('profiles').update(row).eq('id', id)
   if (error) throw error
 }
 
