@@ -1,4 +1,4 @@
-const CACHE = 'hp-hiring-v1'
+const CACHE = 'hp-hiring-v2'
 const PRECACHE = [
   '/',
   '/index.html',

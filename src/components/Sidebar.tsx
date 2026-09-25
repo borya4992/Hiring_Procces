@@ -19,7 +19,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="logo-badge">HP</div>
+        <div className="logo-badge">
+          <img src="/icons/icon-192.png" alt="" />
+        </div>
         <div>
           <div className="brand-name">{t('brand')}</div>
           <div className="brand-sub">{t('tagline')}</div>

@@ -10,7 +10,9 @@ function AuthChrome({ children }: { children: ReactNode }) {
     <div className="login-shell">
       <div className="login-art">
         <div className="brand-mark">
-          <div className="logo-badge">HP</div>
+          <div className="logo-badge">
+            <img src="/icons/icon-192.png" alt="" />
+          </div>
           <div>
             <div className="brand-name">{t('brand')}</div>
             <div className="brand-sub">{t('tagline')}</div>
